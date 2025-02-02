@@ -58,4 +58,4 @@ migrations/
 .docker/
 
 # Ignore .env file
-../.env
+.env
