@@ -1,6 +1,14 @@
+name: Deploy Telegram Bot
+
+on:
+  push:
+    branches:
+      - feat/permissions  # Trigger workflow only on master branch
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
