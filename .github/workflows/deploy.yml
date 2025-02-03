@@ -24,6 +24,13 @@ jobs:
         run: |
           docker push ghcr.io/${{ secrets.GHCR_USERNAME }}/booking-bot:latest
 
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SERVER_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+                
       - name: SSH into Server & Deploy
         uses: appleboy/ssh-action@v0.1.10
         with:
