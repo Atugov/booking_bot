@@ -1,14 +1,6 @@
-name: Deploy Telegram Bot
-
-on:
-  push:
-    branches:
-      - feat/permissions  # Trigger workflow only on master branch
-
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -30,13 +22,14 @@ jobs:
           echo "${{ secrets.SERVER_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-                
+        shell: bash
+
       - name: SSH into Server & Deploy
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
+          private_key: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
           script: |
             docker stop telegram-bot || true
             docker rm telegram-bot || true
