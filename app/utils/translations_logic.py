@@ -1,4 +1,4 @@
-from telegram import InlineKeyboardButton
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.utils.database import check_user_in_db
 from app.utils.translations import translations

@@ -5,7 +5,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from app.utils.database import supabase
 from app.utils.keyboard_utils import create_user_inline_buttons
 from app.utils.messages import delete_previous_messages
-from app.utils.translations_logic import send_translated_message
+from app.utils.translations_logic import send_translated_message, translate_buttons
 
 
 async def handle_user_selection(update, context):
@@ -66,7 +66,7 @@ async def handle_see_past_events(update, context):
         bookings_response = supabase.table('bookings').select('event_id').eq('user_id', user_id).execute()
 
         if not bookings_response.data:
-            sent_message = await update.callback_query.message.reply_text(
+            sent_message = await send_translated_message(update, context,
                 "You have no past events.",
                 reply_markup=create_user_inline_buttons(user_id)
             )
@@ -86,7 +86,7 @@ async def handle_see_past_events(update, context):
         )
 
         if not events_response.data:
-            sent_message = await update.callback_query.message.reply_text(
+            sent_message = await send_translated_message(update, context,
                 "You have no past events.",
                 reply_markup=create_user_inline_buttons(user_id)
             )
@@ -212,7 +212,7 @@ async def handle_upcoming_bookings(update, context):
                 keyboard.append([InlineKeyboardButton(button_text, callback_data=f"event_{event_id}")])
 
         # Add "Main Menu" button at the bottom
-        keyboard.append([InlineKeyboardButton("Main Menu", callback_data="main_menu")])
+        keyboard.append(translate_buttons(user_id, [{"text": "Main Menu", "callback_data": "main_menu"}]))
 
         # Display the buttons
         sent_message =  await send_translated_message(update, context,

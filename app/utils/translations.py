@@ -103,12 +103,8 @@ translations = {
         "en": "Your schedule has been updated to {schedule_time.strftime('%d.%m.%Y %H:%M')}",
         "ru": "Ваше расписание было обновлено до {schedule_time.strftime('%d.%m.%Y %H:%M')}"
     },
-    "Spaces not provided": {
-        "en": "Spaces not provided",
-        "ru": "Места не указаны"
-    },
-    "There are no upcoming schedules.": {
-        "en": "There are no upcoming schedules.",
+    "There are no upcoming events.": {
+        "en": "There are no upcoming events.",
         "ru": "Нет предстоящих расписаний."
     },
     "Error during schedule check: {e}": {
@@ -339,8 +335,32 @@ translations = {
         "en": "Your Upcoming Bookings:",
         "ru": "Ваши предстоящие бронирования:"
     },
-    "Here are the upcoming schedules:": {
-        "en": "Here are the upcoming schedules:",
+    "Here are the upcoming events:": {
+        "en": "Here are the upcoming events:",
         "ru": "Предстоящее расписание:"
+    },"left": {
+        "en": "left",
+        "ru": "осталось"
     },
+    "Spaces not provided": {
+        "en": "Spaces not provided",
+        "ru": "Места не указаны"
+    },
+   "Your Past Events:": {
+       "en": "Your Past Events:",
+       "ru": "Ваши прошлые события:"
+   },
+   "No past events found.": {
+       "en": "No past events found.",
+       "ru": "Прошлые события не найдены."
+   },
+   "You have no past events.": {
+       "en": "You have no past events.",
+       "ru": "У вас нет прошлых событий."
+   },
+   "event_details": {
+       "en": "{event_name} - {event_date} - {event_location}",
+       "ru": "{event_name} - {event_date} - {event_location}"
+   }
 }
+

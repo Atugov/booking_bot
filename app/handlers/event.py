@@ -7,7 +7,7 @@ from app.utils.database import supabase, check_user_in_db, \
 from app.utils.keyboard_utils import create_calendar_buttons
 from app.utils.keyboard_utils import create_minute_buttons, create_admin_inline_buttons, create_time_buttons
 from app.utils.messages import delete_previous_messages
-from app.utils.translations_logic import send_translated_message
+from app.utils.translations_logic import send_translated_message, translate_buttons, t
 
 
 # Calendar Handling
@@ -92,7 +92,10 @@ async def handle_time_selection(update, context):
 
 async def handle_check_schedule(update, context):
     try:
-        await delete_previous_messages(update,context)
+        await delete_previous_messages(update, context)
+
+        # Get user_id from update
+        user_id = update.effective_user.id
 
         # Step 2: Fetch the current datetime in ISO format
         current_datetime = datetime.now().isoformat()
@@ -107,6 +110,16 @@ async def handle_check_schedule(update, context):
         )
 
         if response.data:
+            # Fetch user's bookings to check which events they have booked
+            bookings_response = (
+                supabase.table('bookings')
+                .select('event_id')
+                .eq('user_id', user_id)
+                .eq('status', 'confirmed')
+                .execute()
+            )
+            booked_event_ids = {booking['event_id'] for booking in bookings_response.data} if bookings_response.data else set()
+
             # Create a list of buttons for all future events
             keyboard = []
             for event in response.data:
@@ -114,44 +127,56 @@ async def handle_check_schedule(update, context):
                 spaces = event['spaces']
 
                 # Query the bookings table to count confirmed bookings for this event
-                bookings_response = supabase.table('bookings').select('status').eq('event_id', event_id).eq('status',
-                                                                                                            'confirmed').execute()
-                confirmed_bookings_count = len(bookings_response.data) if bookings_response.data else 0
+                confirmed_bookings_count = (
+                    supabase.table('bookings')
+                    .select('status')
+                    .eq('event_id', event_id)
+                    .eq('status', 'confirmed')
+                    .execute()
+                )
+                confirmed_bookings_count = len(confirmed_bookings_count.data) if confirmed_bookings_count.data else 0
 
                 # Calculate spaces left
                 spaces_left = spaces - confirmed_bookings_count if spaces is not None else "Spaces not provided"
 
+                # Check if the user has already booked this event
+                booked_indicator = " ✅" if event_id in booked_event_ids else ""
+                user_data = check_user_in_db(user_id)
+                user_language = user_data[0].get("language", "en") if user_data else "en"
                 # Add event button with appropriate spaces display
-                spaces_display = f"({spaces_left} left)" if isinstance(spaces_left, int) else "(Spaces not provided)"
+                spaces_display = f"({spaces_left} {t(user_language, 'left')})" if isinstance(spaces_left,
+                                                                                             int) else f"({t(user_language, 'Spaces not provided')})"
                 keyboard.append([
                     InlineKeyboardButton(
-                        f"{datetime.fromisoformat(event['event_datetime']).strftime('%d.%m.%Y %H:%M')} {spaces_display}",
+                        f"{datetime.fromisoformat(event['event_datetime']).strftime('%d.%m.%Y %H:%M')} {spaces_display}{booked_indicator}",
                         callback_data=f"event_{event_id}"  # Use the event ID for later actions
                     )
                 ])
 
-            # Add "Main Menu" button at the bottom
-            keyboard.append([InlineKeyboardButton("Main menu", callback_data="main_menu")])
+            # Add "Main Menu" button at the bottom (translated)
+            keyboard.append(translate_buttons(user_id, [{"text": "Main Menu", "callback_data": "main_menu"}]))
 
             # Send the new message with upcoming events
             await update.callback_query.answer()  # Acknowledge the callback
-            sent_message = await send_translated_message(update, context,
-                "Here are the upcoming schedules:",
+            sent_message = await send_translated_message(
+                update, context,
+                "Here are the upcoming events:",
                 reply_markup=InlineKeyboardMarkup(keyboard)
             )
 
-            # Step 3: Store the message ID for the main menu message (specific to check_schedule)
+            # Store the message ID for the main menu message (specific to check_schedule)
             context.user_data["check_schedule_message_id"] = sent_message.message_id
 
         else:
             await update.callback_query.answer()
-            await update.callback_query.message.reply_text("There are no upcoming schedules.")
+            await update.callback_query.message.reply_text("There are no upcoming events.")
 
     except Exception as e:
         print(f"Error during schedule check: {e}")
         await update.callback_query.message.reply_text(
             "An error occurred while checking the schedule. Please try again."
         )
+
 
 
 async def handle_event_selection(update, context):
@@ -200,22 +225,25 @@ async def handle_event_selection(update, context):
     # Prepare buttons based on role
     if role_id == 1 or role_id == 2:  # Admin role
         # Admin actions: Edit, View, Cancel
-        keyboard = [
-            [InlineKeyboardButton("Edit event", callback_data=f"edit_event_{event_id}"),
-             InlineKeyboardButton("View details", callback_data=f"show_event_details_{event_id}")],
-            [InlineKeyboardButton("Cancel event", callback_data=f"cancel_event_{event_id}"),
-             InlineKeyboardButton(button_text, callback_data=callback_data)],  # Book or cancel
-            [InlineKeyboardButton("Main Menu", callback_data="main_menu")]
+        buttons = [
+            {"text": "Edit event", "callback_data": f"edit_event_{event_id}"},
+            {"text": "View details", "callback_data": f"show_event_details_{event_id}"},
+            {"text": "Cancel event", "callback_data": f"cancel_event_{event_id}"},
+            {"text": f"{button_text}", "callback_data": callback_data},
+            {"text": "Main Menu", "callback_data": "main_menu"}
+
         ]
+        translated_buttons = translate_buttons(user_id, buttons)
     else:
         # Regular user actions: Book or Cancel booking
-        keyboard = [
-            [InlineKeyboardButton(button_text, callback_data=callback_data),
-            InlineKeyboardButton("Main Menu", callback_data="main_menu")]
+        buttons = [
+            {"text": f"{button_text}", "callback_data": callback_data},
+            {"text": "Main Menu", "callback_data": "main_menu"}
         ]
+        translated_buttons = translate_buttons(user_id, buttons)
 
     await update.callback_query.answer()  # Acknowledge the callback
-    sent_message = await update.callback_query.message.reply_text(message, reply_markup=InlineKeyboardMarkup(keyboard))
+    sent_message = await update.callback_query.message.reply_text(message, reply_markup=InlineKeyboardMarkup([translated_buttons]))
     context.user_data["event_selection_message_id"] = sent_message.message_id
 
 
@@ -275,15 +303,16 @@ async def handle_cancel_booking(update, context):
             await update.callback_query.answer("Booking cancelled successfully!")
 
             # Step 7: Send a confirmation message with updated options
-            keyboard = [
-                [InlineKeyboardButton("Check schedule", callback_data="check_schedule"),
-                 InlineKeyboardButton("Main Menu", callback_data="main_menu")]
+            buttons = [
+                {"text": "Check schedule", "callback_data": "check_schedule"},
+                {"text": "Main Menu", "callback_data": "main_menu"}
             ]
+            translated_buttons = translate_buttons(user_id, buttons)
             await update.callback_query.message.reply_text(
                 f"You have successfully cancelled booking for {user_name} on {formatted_event_datetime}. Message will be sent to user"
             )
             buttons_message = await update.callback_query.message.reply_text("Please choose an option",
-                                                                             reply_markup=InlineKeyboardMarkup(keyboard)
+                                                                             reply_markup=InlineKeyboardMarkup(translated_buttons)
                                                                              )
             context.user_data["cancellation_booking_buttons_message_id"] = buttons_message.message_id
             # Step 8: Notify the user whose booking was canceled, but ONLY if an admin (role_id 1 or 2) performed the cancellation
