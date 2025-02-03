@@ -3,43 +3,56 @@ name: Deploy Telegram Bot
 on:
   push:
     branches:
-      - feat/permissions  # Trigger workflow only on master branch
+      - feat/permissions  # Trigger workflow only on the specified branch
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the repository to access the Dockerfile and code
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      # Log in to GitHub Container Registry
       - name: Log in to GitHub Container Registry
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ secrets.GHCR_USERNAME }}" --password-stdin
 
+      # Build Docker Image
       - name: Build Docker Image
         run: |
           docker build -t ghcr.io/${{ secrets.GHCR_USERNAME }}/booking-bot:latest .
 
+      # Push the Docker image to GitHub Container Registry
       - name: Push Image to GitHub Container Registry
         run: |
           docker push ghcr.io/${{ secrets.GHCR_USERNAME }}/booking-bot:latest
 
+      # Set up SSH key for deployment
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SERVER_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
-        shell: bash
 
+      # Debug SSH connection to ensure it works
+      - name: Test SSH connection
+        run: |
+          ssh -v -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} 'echo "SSH connection successful"'
+
+      # SSH into server and deploy the Docker container
       - name: SSH into Server & Deploy
         uses: appleboy/ssh-action@v0.1.10
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
-          private_key: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
+          key: ${{ secrets.SERVER_SSH_PRIVATE_KEY }}
           script: |
+            echo "Stopping and removing previous container..."
             docker stop telegram-bot || true
             docker rm telegram-bot || true
+            echo "Pulling the latest Docker image..."
             docker pull ghcr.io/${{ secrets.GHCR_USERNAME }}/booking-bot:latest
+            echo "Running the new Docker container..."
             docker run -d --env-file /path/to/.env --name telegram-bot ghcr.io/${{ secrets.GHCR_USERNAME }}/booking-bot:latest
