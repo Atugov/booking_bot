@@ -3,7 +3,7 @@ name: Deploy Telegram Bot
 on:
   push:
     branches:
-      - master  # Trigger workflow only on master branch
+      - feat/permissions  # Trigger workflow only on master branch
 
 jobs:
   build-and-deploy:
