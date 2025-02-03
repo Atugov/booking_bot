@@ -13,7 +13,7 @@ venv.bak/
 
 # Ignore IDE/editor config files
 .vscode/
-../.idea/
+.idea/
 *.iml
 
 # Ignore pytest cache
