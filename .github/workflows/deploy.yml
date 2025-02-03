@@ -27,18 +27,20 @@ jobs:
       - name: Set up SSH key
         run: |
           mkdir -p ~/.ssh
-          # Write private key to file
-          echo "${{ secrets.SERVER_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.SERVER_SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          # Add server's SSH fingerprint to known hosts
           ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
-      - name: Show SSH key contents (for debugging)
+      - name: Debug SSH Key (Temporary)
         run: |
-          echo "Private Key:"
+          echo "SSH Key:"
           cat ~/.ssh/id_rsa
           echo "Known Hosts:"
           cat ~/.ssh/known_hosts
+
+      - name: Test SSH Connection
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} "echo 'SSH connection successful'"
 
       - name: SSH into Server & Deploy
         uses: appleboy/ssh-action@v0.1.10
