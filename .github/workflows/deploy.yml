@@ -26,7 +26,8 @@ jobs:
       - name: Build Docker image
         run: |
           IMAGE_TAG="ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/telegram-bot:${{ github.sha }}"
-          docker buildx build --platform linux/arm64 -t $IMAGE_TAG .
+          docker buildx build --platform linux/arm64 -t $IMAGE_TAG --load .
+          echo $IMAGE_TAG
 
       - name: Push Docker image to GHCR
         run: |
@@ -63,4 +64,3 @@ jobs:
             echo "Running new container..."
             sudo docker run -d --restart unless-stopped --name telegram-bot $IMAGE_TAG
           EOF
-      
