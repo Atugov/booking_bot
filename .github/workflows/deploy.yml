@@ -19,36 +19,36 @@ jobs:
       - name: Log in to GitHub Container Registry (GHCR)
         uses: docker/login-action@v2
         with:
-          registry: ghcr.io  # Ensure login is for GHCR, not Docker Hub
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Build Docker image
         run: |
-          IMAGE_TAG="ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/telegram-bot:${{ github.sha }}"
+          IMAGE_TAG="ghcr.io/$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')/telegram-bot:${{ github.sha }}"
           docker build -t $IMAGE_TAG .
 
       - name: Push Docker image to GHCR
         run: |
-          IMAGE_TAG="ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/telegram-bot:${{ github.sha }}"
+          IMAGE_TAG="ghcr.io/$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')/telegram-bot:${{ github.sha }}"
           docker push $IMAGE_TAG
 
-      - name: Install sshpass
-        run: sudo apt-get install -y sshpass
+      # Enable Tailscale for secure SSH access
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
 
-      - name: Deploy to Raspberry Pi via SSH
+      - name: Install sshpass
+        run: sudo apt-get install sshpass
+
+      - name: SSH into Raspberry Pi and Deploy
         run: |
-          IMAGE_TAG="ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/telegram-bot:${{ github.sha }}"
-          sshpass -p "${{ secrets.RPI_PASSWORD }}" ssh -o StrictHostKeyChecking=no -l "${{ secrets.RPI_USER }}" "${{ secrets.RPI_IP }}" << 'EOF'
-            echo "Pulling latest image..."
+          IMAGE_TAG="ghcr.io/$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')/telegram-bot:${{ github.sha }}"
+          sshpass -p "${{ secrets.RPI_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.RPI_USER }}@${{ secrets.RPI_TAILSCALE_IP }} << 'EOF'
             sudo docker pull $IMAGE_TAG
-            
-            echo "Stopping existing container..."
             sudo docker stop telegram-bot || true
-            
-            echo "Removing old container..."
             sudo docker rm telegram-bot || true
-            
-            echo "Running new container..."
-            sudo docker run -d --restart unless-stopped --name telegram-bot $IMAGE_TAG
+            sudo docker run -d --name telegram-bot $IMAGE_TAG
           EOF
