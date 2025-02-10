@@ -24,11 +24,11 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/telegram-bot:${{ github.sha }} .
+          docker build -t ghcr.io/${{ github.repository_owner | downcase }}/telegram-bot:${{ github.sha }} .
 
       - name: Push Docker image to GHCR
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/telegram-bot:${{ github.sha }}
+          docker push ghcr.io/${{ github.repository_owner | downcase }}/telegram-bot:${{ github.sha }}
 
       - name: Install sshpass
         run: sudo apt-get install sshpass
@@ -36,8 +36,8 @@ jobs:
       - name: SSH into Raspberry Pi and Deploy
         run: |
           sshpass -p "${{ secrets.RPI_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.RPI_USER }}@${{ secrets.RPI_IP }} << 'EOF'
-            sudo docker pull ghcr.io/${{ github.repository_owner }}/telegram-bot:${{ github.sha }}
+            sudo docker pull ghcr.io/${{ github.repository_owner | downcase }}/telegram-bot:${{ github.sha }}
             sudo docker stop telegram-bot || true
             sudo docker rm telegram-bot || true
-            sudo docker run -d --name telegram-bot ghcr.io/${{ github.repository_owner }}/telegram-bot:${{ github.sha }}
+            sudo docker run -d --name telegram-bot ghcr.io/${{ github.repository_owner | downcase }}/telegram-bot:${{ github.sha }}
           EOF
