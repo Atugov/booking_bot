@@ -47,7 +47,7 @@ jobs:
       - name: Deploy to Raspberry Pi via SSH (Tailscale IP)
         run: |
           IMAGE_TAG="ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/telegram-bot:${{ github.sha }}"
-          sshpass -p "${{ secrets.RPI_PASSWORD }}" ssh -o StrictHostKeyChecking=no -l "${{ secrets.RPI_USER }}" "${{ secrets.RPI_IP }}" << 'EOF'
+          sshpass -p "${{ secrets.RPI_PASSWORD }}" ssh -o StrictHostKeyChecking=no -l "${{ secrets.RPI_USER }}" "${{ secrets.RPI_IP }}" << EOF
             echo "Pulling latest image..."
             sudo docker pull $IMAGE_TAG
             
