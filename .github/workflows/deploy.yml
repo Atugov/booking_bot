@@ -27,7 +27,7 @@ jobs:
         with:
           username: ${{ github.actor }}  # Uses the repo owner’s username automatically
           password: ${{ secrets.GHCR_TOKEN }}
-      
+
       - name: Build Docker image
         run: |
           IMAGE_TAG="ghcr.io/$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')/telegram-bot:${{ github.sha }}"
