@@ -24,20 +24,23 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner | downcase }}/telegram-bot:${{ github.sha }} .
+          IMAGE_TAG="ghcr.io/$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')/telegram-bot:${{ github.sha }}"
+          docker build -t $IMAGE_TAG .
 
       - name: Push Docker image to GHCR
         run: |
-          docker push ghcr.io/${{ github.repository_owner | downcase }}/telegram-bot:${{ github.sha }}
+          IMAGE_TAG="ghcr.io/$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')/telegram-bot:${{ github.sha }}"
+          docker push $IMAGE_TAG
 
       - name: Install sshpass
         run: sudo apt-get install sshpass
 
       - name: SSH into Raspberry Pi and Deploy
         run: |
+          IMAGE_TAG="ghcr.io/$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')/telegram-bot:${{ github.sha }}"
           sshpass -p "${{ secrets.RPI_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.RPI_USER }}@${{ secrets.RPI_IP }} << 'EOF'
-            sudo docker pull ghcr.io/${{ github.repository_owner | downcase }}/telegram-bot:${{ github.sha }}
+            sudo docker pull $IMAGE_TAG
             sudo docker stop telegram-bot || true
             sudo docker rm telegram-bot || true
-            sudo docker run -d --name telegram-bot ghcr.io/${{ github.repository_owner | downcase }}/telegram-bot:${{ github.sha }}
+            sudo docker run -d --name telegram-bot $IMAGE_TAG
           EOF
