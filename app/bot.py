@@ -72,4 +72,3 @@ if __name__ == '__main__':
 
     print('Polling...')
     app.run_polling()
-# test18
