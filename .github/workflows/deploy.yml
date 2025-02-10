@@ -25,9 +25,9 @@ jobs:
       - name: Log in to GitHub Container Registry (GHCR)
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.GHCR_USERNAME }}  # This uses your GitHub username
-          password: ${{ secrets.GHCR_TOKEN }}  # The GHCR token you added to secrets
-
+          username: ${{ github.actor }}  # Uses the repo owner’s username automatically
+          password: ${{ secrets.GHCR_TOKEN }}
+      
       - name: Build Docker image
         run: |
           IMAGE_TAG="ghcr.io/$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')/telegram-bot:${{ github.sha }}"
