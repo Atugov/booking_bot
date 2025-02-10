@@ -48,6 +48,9 @@ jobs:
         run: |
           IMAGE_TAG="ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')/telegram-bot:${{ github.sha }}"
           sshpass -p "${{ secrets.RPI_PASSWORD }}" ssh -o StrictHostKeyChecking=no -l "${{ secrets.RPI_USER }}" "${{ secrets.RPI_IP }}" << EOF
+            echo "Logging in to GHCR..."
+            echo "${{ secrets.GHCR_TOKEN }}" | sudo docker login ghcr.io -u $USER --password-stdin
+          
             echo "Pulling latest image..."
             sudo docker pull $IMAGE_TAG
             
